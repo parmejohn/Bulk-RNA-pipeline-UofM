@@ -1,0 +1,6 @@
+.nextflow*
+*.txt
+.Rhistory
+*.Rhistory
+.git/
+work/
