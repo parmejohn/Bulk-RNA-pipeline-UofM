@@ -46,7 +46,6 @@ process MULTIQC {
     
     input:
     path '*'
-    val report_name
 
     output:
     path '*'
@@ -124,7 +123,7 @@ process TRIM {
 process KALLISTO {
     containerOptions "--bind $params.bind"
     cache 'deep'
-    debug true
+    debug false
   
     publishDir (
     path: "$params.outdir/kallisto/",
@@ -148,6 +147,7 @@ process KALLISTO {
 	  kallisto quant -i $kallisto_idx -b 100 -t 16 -o ${sample_id} ${reads} 2>&1 | tee ${sample_id}_kallisto.log
 	  """
 }
+
 //	  mv ${sample_id}_kallisto.log ${sample_id}/${sample_id}_kallisto.log
 
 workflow {
@@ -162,14 +162,21 @@ workflow {
   
   TRIM(pairs_ch)
   trimmed_pairs_ch = TRIM.out.trimmed_fq
-  trimmed_pairs_ch.view()
+  //trimmed_pairs_ch.view()
   
   KALLISTO(index_ch, trimmed_pairs_ch)
   
-  //MULTIQC(KALLISTO.out.logs_ch.mix(TRIM.out.fastqc_ch).collect())
+  untrimmed_qc_ch = fastqc_ch.collect()
+  trimmed_qc_ch = TRIM.out.fastqc.collect()
+  kallisto_qc_ch = KALLISTO.out.logs_ch.collect()
   
+  qc_ch = untrimmed_qc_ch.concat(trimmed_qc_ch, kallisto_qc_ch).collect()
+  MULTIQC(qc_ch)
+
   // Analyses
-/*  SLEUTH
-  GSEA
-  GENEWALK*/
+  //SLEUTH
+  //GSEA
+  //GENEWALK
+  //DIFFERENTIALSPLICING
+
 }
