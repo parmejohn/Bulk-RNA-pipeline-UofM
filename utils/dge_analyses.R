@@ -21,7 +21,7 @@ PerformDGETests <- function(kallisto.output, species){
   sampleTable <- do.call(rbind, sampleTable)
   
   ## Perform DESeq2 analyses
-  dds <- DESeqDataSetFromTximport(txi, colData = sampleTable, design = ~ condition)
+  dds <- DESeqDataSetFromTximport(txi, colData = sampleTable, design = ~0 + condition)
   
   smallestGroupSize <- 3
   keep <- rowSums(counts(dds) >= 10) >= smallestGroupSize
@@ -50,7 +50,7 @@ PerformDGETests <- function(kallisto.output, species){
                             mart = mart)
     }
     res.df <- merge(as.data.frame(res), gene_mapping, by.x = "ensemblID", by.y = "ensembl_gene_id", all.x = TRUE)
-    if (length(unique(sampleTable$condition == 2))){
+    if (length(unique(sampleTable$condition)) == 2){
       write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_genewalk.txt'), row.names = F, quote = F)
     } else {
       write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_res.txt'), row.names = F, quote = F)
@@ -62,10 +62,13 @@ PerformDGETests <- function(kallisto.output, species){
   ### Perform 1 vs all comparison for gene walk results
   if (length(unique(sampleTable$condition)) > 2){
     print("why")
-    print(unique(sampleTable$condition))
+    print(paste0("table", unique(sampleTable$condition)))
     for(i in 1:length(unique(sampleTable$condition))){
+	print(resultsNames(dds))
+	print(unique(sampleTable$condition)[i])
+	print(unique(sampleTable$condition)[-i])
       res <- results(dds, 
-                     contrast = list(c(unique(sampleTable$condition)[i]),c(unique(sampleTable$condition)[-i])),
+                     contrast = list(paste0("condition", unique(sampleTable$condition)[i]),paste0("condition", unique(sampleTable$condition)[-i])),
                      listValues = c(1, -1/length(unique(sampleTable$condition)[-i]))
                      )
       res$ensemblID <- rownames(res)
@@ -74,12 +77,12 @@ PerformDGETests <- function(kallisto.output, species){
       
       p1 <- deg_volcano_plot(res.df, 
                              unique(sampleTable$condition)[i], 
-                             unique(sampleTable$condition)[-i]
+                             "all"
                              )
       p2 <- GseaComparison(res.df, 
                            fgsea.sets, 
                            unique(sampleTable$condition)[i], 
-                           unique(sampleTable$condition)[-i]
+                           "all"
                            )
     }
   }
@@ -141,7 +144,6 @@ GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2){
     theme_bw() +
     labs(x="Pathway", y="Normalized Enrichment Score") + 
     scale_fill_identity() + 
-    theme(legend.position = 'none') + 
     ggtitle(paste0("GSEA: ", ident.1, " vs ", ident.2))
   
   #dir.create(paste(plot.path, 'gsea', sep=''))

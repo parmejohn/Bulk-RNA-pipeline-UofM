@@ -200,7 +200,7 @@ process GENEWALK {
 
     script:
     """
-    awk 'NR > 1 && \$7 < 0.05 {print \$NF}' $input_file | sort -k3,3nr > genewalk_filtered.txt
+    awk 'NR > 1 && \$7 < 0.05 && \$8 != "NA" {print \$8}' $input_file | sort -k3,3nr > genewalk_filtered.txt
     filename=$input_file
     genewalk --project results --genes genewalk_filtered.txt --id_type $id_type --base_folder "\${filename%.*}"
 	  rm genewalk_filtered.txt
@@ -235,10 +235,12 @@ workflow {
   // Analyses
   DGEANALYSES(KALLISTO.out.quant.collect(), 'homosapiens')
   //deg_files_ch = Channel.fromPath(DGEANALYSES.out.deg_files)
+
+	deg_files_ch = DGEANALYSES.out.deg_files.flatten()
   if (params.species == 'homosapiens'){
-    GENEWALK(DGEANALYSES.out.deg_files, 'hgnc_symbol')
+    GENEWALK(deg_files_ch, 'hgnc_symbol')
   } else if (params.species == 'musmuculus') {
-    GENEWALK(DGEANALYSES.out.deg_files, 'mgi_id')
+    GENEWALK(deg_files_ch, 'mgi_id')
   }
   //DIFFERENTIALSPLICING
 }
