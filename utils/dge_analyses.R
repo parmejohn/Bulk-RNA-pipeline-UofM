@@ -146,6 +146,5 @@ GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2){
     scale_fill_identity() + 
     ggtitle(paste0("GSEA: ", ident.1, " vs ", ident.2))
   
-  #dir.create(paste(plot.path, 'gsea', sep=''))
-  ggsave(filename = paste0("gsea_", ident.1, "_vs_", ident.2, '.pdf'), plot = p, width=8, height=8)
+  ggsave(filename = paste0("gsea_", ident.1, "_vs_", ident.2, '.pdf'), plot = p, width = 305, height = 152, units = "mm")
 }
