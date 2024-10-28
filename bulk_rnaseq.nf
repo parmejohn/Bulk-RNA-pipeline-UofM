@@ -172,6 +172,7 @@ process DGEANALYSES {
     path "*res.txt", optional: true
     path "gsea*.txt"
     path "*.pdf"
+	path "*.rds"
 
     script:
     """

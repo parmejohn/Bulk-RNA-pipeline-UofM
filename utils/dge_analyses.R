@@ -13,9 +13,12 @@ PerformDGETests <- function(kallisto.output, species){
   tx2gene <- as.data.frame(tx2gene[, c("tx_id", "gene_id")]) %>% dplyr::select(tx_id, gene_id)
   tx2gene <- tx2gene[!duplicated(tx2gene$tx_id), ]
   
+	kallisto.output <- sort(kallisto.output)
+
   kallisto.abundance <- list.files(kallisto.output, pattern = "abundance.h5", full.names = T)
   print(kallisto.abundance)
-  
+  print(kallisto.output)
+
   sampleTable <- lapply(kallisto.output, extract_sample_info)
   sampleTable <- do.call(rbind, sampleTable)
   print(sampleTable)
@@ -24,7 +27,8 @@ PerformDGETests <- function(kallisto.output, species){
   print(kallisto.abundance)
   
   txi <- tximport(kallisto.abundance, type = "kallisto", tx2gene = tx2gene, ignoreTxVersion = TRUE)
-  
+  saveRDS(txi, "counts_object.rds")
+
   ## Perform DESeq2 analyses
   dds <- DESeqDataSetFromTximport(txi, colData = sampleTable, design = ~0 + condition)
   
