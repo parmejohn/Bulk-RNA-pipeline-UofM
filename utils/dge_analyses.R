@@ -16,15 +16,11 @@ PerformDGETests <- function(kallisto.output, species){
 	kallisto.output <- sort(kallisto.output)
 
   kallisto.abundance <- list.files(kallisto.output, pattern = "abundance.h5", full.names = T)
-  print(kallisto.abundance)
-  print(kallisto.output)
 
   sampleTable <- lapply(kallisto.output, extract_sample_info)
   sampleTable <- do.call(rbind, sampleTable)
-  print(sampleTable)
   
   names(kallisto.abundance) <- sampleTable$sample
-  print(kallisto.abundance)
   
   txi <- tximport(kallisto.abundance, type = "kallisto", tx2gene = tx2gene, ignoreTxVersion = TRUE)
   saveRDS(txi, "counts_object.rds")
@@ -70,12 +66,7 @@ PerformDGETests <- function(kallisto.output, species){
   
   ### Perform 1 vs all comparison for gene walk results
   if (length(unique(sampleTable$condition)) > 2){
-    print("why")
-    print(paste0("table", unique(sampleTable$condition)))
     for(i in 1:length(unique(sampleTable$condition))){
-	print(resultsNames(dds))
-	print(unique(sampleTable$condition)[i])
-	print(unique(sampleTable$condition)[-i])
       res <- results(dds, 
                      contrast = list(paste0("condition", unique(sampleTable$condition)[i]),paste0("condition", unique(sampleTable$condition)[-i])),
                      listValues = c(1, -1/length(unique(sampleTable$condition)[-i]))
