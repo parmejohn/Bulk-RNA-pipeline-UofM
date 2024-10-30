@@ -16,6 +16,8 @@ library(ggplot2)
 library(ggrepel)
 library(fgsea)
 library(msigdbr)
+library(RColorBrewer)
+library(ComplexHeatmap)
 
 set.seed(333)
 

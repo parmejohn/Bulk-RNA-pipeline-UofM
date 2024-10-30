@@ -34,7 +34,7 @@ PerformDGETests <- function(kallisto.output, species){
   dds <- DESeq(dds)
   
   ### Perform every pairwise comparison possible
-  m_df<- msigdbr(species = species, category = "C5", subcategory = "BP") # dont need to reload the dataset every time for GSEA
+  m_df <- msigdbr(species = species, category = "C5", subcategory = "BP") # dont need to reload the dataset every time for GSEA
   fgsea.sets <- m_df %>% split(x = .$gene_symbol, f = .$gs_name)
   
   group.pairs <- as.data.frame(combn(unique(sampleTable$condition), 2))
@@ -62,6 +62,7 @@ PerformDGETests <- function(kallisto.output, species){
     }
     p1 <- deg_volcano_plot(res.df, group.pairs[[i]][1], group.pairs[[i]][2])
     p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2])
+    p3 <- deg_heatmap(res.df, as.data.frame(txi$abundance), group.pairs[[i]][1], group.pairs[[i]][2], sampleTable)
   }
   
   ### Perform 1 vs all comparison for gene walk results
@@ -84,6 +85,13 @@ PerformDGETests <- function(kallisto.output, species){
                            unique(sampleTable$condition)[i], 
                            "all"
                            )
+      p3 <- deg_heatmap(res.df, 
+                        as.data.frame(txi$abundance), 
+                        unique(sampleTable$condition)[i], 
+                        "all", 
+                        sampleTable
+                        )
+      
     }
   }
 }
@@ -147,4 +155,61 @@ GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2){
     ggtitle(paste0("GSEA: ", ident.1, " vs ", ident.2))
   
   ggsave(filename = paste0("gsea_", ident.1, "_vs_", ident.2, '.pdf'), plot = p, width = 305, height = 152, units = "mm")
+}
+
+deg_heatmap <- function(de.markers, counts.df, ident.1, ident.2, sample.table){
+  
+  sample.table <- sample.table[order(sample.table$condition),]
+  counts.df <- counts.df[, sample.table$sample]
+  
+  if (ident.2 == "all") {
+    sub.samples <- sample.table
+  } else {
+    sub.samples <- subset(sample.table, condition == ident.1 | condition == ident.2)
+  }
+  
+  ann <- data.frame(sub.samples$condition)
+  colnames(ann) <- c('Condition')
+  col = list(c=structure(brewer.pal(length(unique(sub.samples$condition)), "Set2"), 
+                         names = unique(sub.samples$condition)))
+  colAnn <- HeatmapAnnotation(df = ann,
+                              which = 'column',
+                              col = col,
+                              annotation_width = unit(c(1, 4), 'cm'),
+                              gap = unit(1, 'mm'))
+  
+  de.markers.filtered <- subset(de.markers, padj < 0.05 & abs(log2FoldChange) >= 2)
+  counts.df.filtered <- counts.df %>%
+    dplyr::filter(row.names(counts.df) %in% de.markers.filtered$ensemblID)
+  row_labels = structure(de.markers.filtered$hgnc_symbol, names = de.markers.filtered$ensemblID)
+  row_labels[is.na(row_labels) | row_labels == ""] <- names(row_labels)[is.na(row_labels) | row_labels == ""]
+  if (ident.2 != "all") {
+    counts.df.filtered <- counts.df.filtered %>% dplyr::select(sub.samples$sample)
+  }
+  heat <- t(scale(t(counts.df.filtered)))
+  
+  
+  hmap <- Heatmap(
+    heat,
+    name = "expression",
+    show_row_names = TRUE,
+    show_column_names = TRUE,
+    cluster_rows = TRUE,
+    cluster_columns = FALSE,
+    show_column_dend = TRUE,
+    show_row_dend = TRUE,
+    row_dend_reorder = TRUE,
+    column_dend_reorder = TRUE,
+    width = unit(100, "mm"),
+    top_annotation=colAnn,
+    row_labels = row_labels[rownames(heat)],
+    row_names_gp = gpar(fontsize = 4)
+  )
+  p <- draw(hmap, heatmap_legend_side="left", annotation_legend_side="right")
+  
+  pdf(paste0("deg_heatmap_", ident.1, "_vs_", ident.2, ".pdf"), width = 10, height = 10)
+  print(p)
+  graphics.off()
+  
+  return(p)
 }
