@@ -40,6 +40,8 @@ PerformDGETests <- function(kallisto.output, species){
   group.pairs <- as.data.frame(combn(unique(sampleTable$condition), 2))
   group.pairs <- sapply(group.pairs, function(x) as.character(x), simplify = FALSE)
   res.df <- NA
+  res.df.list <- list()
+  j = 0
   for (i in 1:length(group.pairs)){
     res <- results(dds, contrast = c("condition", group.pairs[[i]]))
     res$ensemblID <- rownames(res)
@@ -60,6 +62,10 @@ PerformDGETests <- function(kallisto.output, species){
     } else {
       write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_res.txt'), row.names = F, quote = F)
     }
+    res.df.list <- append(res.df.list, list(res.df))
+    names(res.df.list)[i] <- paste0(group.pairs[[i]][1], "_vs_", group.pairs[[i]][2])
+    j = j + 1
+    
     p1 <- deg_volcano_plot(res.df, group.pairs[[i]][1], group.pairs[[i]][2])
     p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2])
     p3 <- deg_heatmap(res.df, as.data.frame(txi$abundance), group.pairs[[i]][1], group.pairs[[i]][2], sampleTable)
@@ -76,24 +82,43 @@ PerformDGETests <- function(kallisto.output, species){
       res.df <- merge(as.data.frame(res), gene_mapping, by.x = "ensemblID", by.y = "ensembl_gene_id", all.x = TRUE)
       write.table(res.df, paste0("deseq2_", unique(sampleTable$condition)[i], "_vs_all_genewalk.txt"), row.names = F, quote = F)
       
-      p1 <- deg_volcano_plot(res.df, 
-                             unique(sampleTable$condition)[i], 
+      j = j + 1
+      res.df.list <- append(res.df.list, list(res.df))
+      names(res.df.list)[j] <- paste0(unique(sampleTable$condition)[i], "_vs_all")
+      
+      p1 <- deg_volcano_plot(res.df,
+                             unique(sampleTable$condition)[i],
                              "all"
                              )
-      p2 <- GseaComparison(res.df, 
-                           fgsea.sets, 
-                           unique(sampleTable$condition)[i], 
+      p2 <- GseaComparison(res.df,
+                           fgsea.sets,
+                           unique(sampleTable$condition)[i],
                            "all"
                            )
-      p3 <- deg_heatmap(res.df, 
-                        as.data.frame(txi$abundance), 
-                        unique(sampleTable$condition)[i], 
-                        "all", 
+      p3 <- deg_heatmap(res.df,
+                        as.data.frame(txi$abundance),
+                        unique(sampleTable$condition)[i],
+                        "all",
                         sampleTable
                         )
       
     }
   }
+  ## creating upset plot from all comparisons and intersections
+  res.df.list.up <- lapply(res.df.list, subset, padj < 0.05 & log2FoldChange >= 2)
+  res.df.list.dn <- lapply(res.df.list, subset, padj < 0.05 & log2FoldChange <= -2)
+  upset.plot.up <- deg_upset(res.df.list.up)
+  upset.plot.dn <- deg_upset(res.df.list.dn)
+  
+  pdf("deg_upset_upreg.pdf", width = 10, height = 6, onefile=FALSE)
+  upset.plot.up
+  grid.text("Upregulated genes\n padj < 0.05 & log2FC >= 2",x = 0.20, y=0.85, gp=gpar(fontsize=16))
+  graphics.off()
+  
+  pdf("deg_upset_dnreg.pdf", width = 10, height = 6, onefile=FALSE)
+  upset.plot.dn
+  grid.text("Downregulated genes\n padj < 0.05 & log2FC <= -2",x = 0.20, y=0.85, gp=gpar(fontsize=16))
+  graphics.off()
 }
 
 ##### FXNS #####
@@ -203,7 +228,9 @@ deg_heatmap <- function(de.markers, counts.df, ident.1, ident.2, sample.table){
     width = unit(100, "mm"),
     top_annotation=colAnn,
     row_labels = row_labels[rownames(heat)],
-    row_names_gp = gpar(fontsize = 4)
+    row_names_gp = gpar(fontsize = 3),
+    column_title = paste0(nrow(counts.df.filtered), " DEGs for ", ident.1, " vs ", ident.2), 
+    column_title_gp = gpar(fontsize = 15, fontface = "bold")
   )
   p <- draw(hmap, heatmap_legend_side="left", annotation_legend_side="right")
   
@@ -212,4 +239,17 @@ deg_heatmap <- function(de.markers, counts.df, ident.1, ident.2, sample.table){
   graphics.off()
   
   return(p)
+}
+
+deg_upset <- function(res.df.list) {
+  for (i in 1:length(res.df.list)) {
+    res.df.list[[i]] <- rownames(res.df.list[[i]])
+  }
+  
+  upset.df <- fromList(res.df.list)
+  
+  p <- upset(upset.df,
+        nsets = length(res.df.list),
+        order.by = "freq",
+        text.scale = 1)
 }
