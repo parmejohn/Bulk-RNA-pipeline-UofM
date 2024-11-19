@@ -9,8 +9,12 @@ PerformDGETests <- function(cnts,
                             filter.gsea.genes){
   
   manual.gene.mapping <- cnts[,1:2]
-  
-  if (filter.chr != "none"){
+  print(filter.chr)  
+  print(filter.gsea.genes)
+
+  if (length(filter.chr) == 1 & filter.chr[1] == "none"){
+	print("no chr filter")	
+  } else {
     if (species == 'Homo sapiens') {
       mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
       gene_mapping <- getBM(attributes = c("ensembl_gene_id", "chromosome_name"),
@@ -32,6 +36,8 @@ PerformDGETests <- function(cnts,
     normalized.cnts <- normalized.cnts[normalized.cnts$chromosome_name != filter.chr, ] %>% dplyr::select(-c("chromosome_name"))
   }
   
+  rownames(cnts) <- NULL
+  rownames(normalized.cnts) <- NULL
   cnts <- column_to_rownames(cnts, "gene_id") %>% dplyr::select(-1)
   normalized.cnts <- column_to_rownames(normalized.cnts, "gene_id") %>% dplyr::select(-1)
   
@@ -87,7 +93,7 @@ PerformDGETests <- function(cnts,
     j = j + 1
     
     p1 <- deg_volcano_plot(res.df, group.pairs[[i]][1], group.pairs[[i]][2])
-    p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2], filter.gsea.genes)
+    p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2], filter.gsea = filter.gsea.genes)
     p3 <- deg_heatmap(res.df, normalized.cnts, group.pairs[[i]][1], group.pairs[[i]][2], sample.table)
   }
   
@@ -117,7 +123,7 @@ PerformDGETests <- function(cnts,
                            fgsea.sets,
                            unique(sample.table$condition)[i],
                            "all",
-                           filter.gsea.genes
+                           filter.gsea = filter.gsea.genes
                            )
       p3 <- deg_heatmap(res.df,
                         normalized.cnts,
@@ -179,13 +185,17 @@ deg_volcano_plot <- function(de_markers, ident.1, ident.2, p_val_adj_cutoff = 0.
   
 }
 
-GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2, filter.gsea.genes){
+GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2, filter.gsea){
   cluster.genes <- de.markers %>%
     arrange(desc(log2FoldChange)) %>% 
     dplyr::select(hgnc_symbol, log2FoldChange) # use avg_log2FC as ranking for now; https://www.biostars.org/p/9526168/
-  
-  if (filter.gsea.genes != "none"){
-    cluster.genes <- cluster.genes[cluster.genes$hgnc_symbol != filter.gsea.genes, ]
+
+	print(filter.gsea)
+
+  if (length(filter.gsea) == 1 & filter.gsea[1] == "none"){
+	print("no filter applied")
+	} else { 
+	cluster.genes <- cluster.genes[cluster.genes$hgnc_symbol != filter.gsea, ]
   }
   
   ranks <- deframe(cluster.genes)
