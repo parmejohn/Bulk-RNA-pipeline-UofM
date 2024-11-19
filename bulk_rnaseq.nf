@@ -4,7 +4,9 @@ params.sample_table = ''
 params.outdir = ''
 params.species = ''
 params.bind = ''
-params.filter_genes = 'none'
+params.chr_filter = 'none'
+params.genes_gsea_filter = 'none'
+
 
 process DGEANALYSES {
     containerOptions "--bind $params.bind"
@@ -23,7 +25,8 @@ process DGEANALYSES {
     path normalized_counts
     val species
     path table
-    val filter_chr
+    val chr_filter
+    val genes_gsea_filter
 
     output:
     path "*genewalk.txt", emit: deg_files
@@ -33,7 +36,7 @@ process DGEANALYSES {
     
     script:
     """
-	  ${projectDir}/src/DGEAnalyses.R --i $counts_matrix -normalized $normalized_counts -species $species -table $table -filter $filter_chr
+	  ${projectDir}/src/DGEAnalyses.R --i $counts_matrix -normalized $normalized_counts -species $species -table $table -chr_filter $chr_filter -genes_gsea_filter $genes_gsea_filter
 	  """
 }
 
@@ -67,7 +70,7 @@ process GENEWALK {
 
 workflow {
   // Analyses
-  DGEANALYSES(params.counts_matrix, params.normalized_counts, 'homosapiens', params.sample_table)
+  DGEANALYSES(params.counts_matrix, params.normalized_counts, 'homosapiens', params.sample_table, params.chr_filter, params.genes_gsea_filter)
 
 	deg_files_ch = DGEANALYSES.out.deg_files.flatten()
   if (params.species == 'homosapiens'){

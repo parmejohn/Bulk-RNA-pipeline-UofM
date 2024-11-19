@@ -1,9 +1,37 @@
 set.seed(333)
 
 ##### MAIN #####
-PerformDGETests <- function(cnts, normalized.cnts, species, sample.table, filter.chr){
+PerformDGETests <- function(cnts, 
+                            normalized.cnts, 
+                            species, 
+                            sample.table, 
+                            filter.chr,
+                            filter.gsea.genes){
   
   manual.gene.mapping <- cnts[,1:2]
+  
+  if (filter.chr != "none"){
+    if (species == 'Homo sapiens') {
+      mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+      gene_mapping <- getBM(attributes = c("ensembl_gene_id", "chromosome_name"),
+                            filters = "ensembl_gene_id", 
+                            values = cnts$gene_id, 
+                            mart = mart)
+    } else if (species == 'Mus musculus'){
+      mart <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
+      gene_mapping <- getBM(attributes = c("ensembl_gene_id", "chromosome_name"),
+                            filters = "ensembl_gene_id", 
+                            values = cnts$gene_id, 
+                            mart = mart)
+    }
+    names(gene_mapping)[names(gene_mapping) == 'ensembl_gene_id'] <- 'gene_id'
+    cnts <- merge(cnts, gene_mapping, by = "gene_id")
+    cnts <- cnts[cnts$chromosome_name != filter.chr, ] %>% dplyr::select(-c("chromosome_name"))
+    
+    normalized.cnts <- merge(normalized.cnts, gene_mapping, by = "gene_id")
+    normalized.cnts <- normalized.cnts[normalized.cnts$chromosome_name != filter.chr, ] %>% dplyr::select(-c("chromosome_name"))
+  }
+  
   cnts <- column_to_rownames(cnts, "gene_id") %>% dplyr::select(-1)
   normalized.cnts <- column_to_rownames(normalized.cnts, "gene_id") %>% dplyr::select(-1)
   
@@ -32,13 +60,13 @@ PerformDGETests <- function(cnts, normalized.cnts, species, sample.table, filter
     res$ensemblID <- rownames(res)
     if (species == 'Homo sapiens') {
       mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
-      gene_mapping <- getBM(attributes = c("ensembl_gene_id", "chromosome_name", "hgnc_symbol"),
+      gene_mapping <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol"),
                             filters = "ensembl_gene_id", 
                             values = res$ensemblID, 
                             mart = mart)
     } else if (species == 'Mus musculus'){
       mart <- useMart("ensembl", dataset = "mmusculus_gene_ensembl")
-      gene_mapping <- getBM(attributes = c("ensembl_gene_id", "chromosome_name", "hgnc_symbol", "mgi_id"),
+      gene_mapping <- getBM(attributes = c("ensembl_gene_id", "hgnc_symbol", "mgi_id"),
                             filters = "ensembl_gene_id", 
                             values = res$ensemblID, 
                             mart = mart)
@@ -48,10 +76,6 @@ PerformDGETests <- function(cnts, normalized.cnts, species, sample.table, filter
     
     res.df <- merge(as.data.frame(res), manual.gene.mapping, by = "ensemblID")
     res.df <- merge(as.data.frame(res.df), gene_mapping, by = "ensemblID")
-    
-    if (filter.chr != "none"){
-      res.df <- res.df[res.df$chromosome_name != filter.chr, ]
-    }
     
     if (length(unique(sample.table$condition)) == 2){
       write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_genewalk.txt'), row.names = F, quote = F)
@@ -63,7 +87,7 @@ PerformDGETests <- function(cnts, normalized.cnts, species, sample.table, filter
     j = j + 1
     
     p1 <- deg_volcano_plot(res.df, group.pairs[[i]][1], group.pairs[[i]][2])
-    p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2])
+    p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2], filter.gsea.genes)
     p3 <- deg_heatmap(res.df, normalized.cnts, group.pairs[[i]][1], group.pairs[[i]][2], sample.table)
   }
   
@@ -79,10 +103,6 @@ PerformDGETests <- function(cnts, normalized.cnts, species, sample.table, filter
       res.df <- merge(as.data.frame(res), manual.gene.mapping, by = "ensemblID")
       res.df <- merge(as.data.frame(res.df), gene_mapping, by = "ensemblID")
       
-      if (filter.chr != "none"){
-        res.df <- res.df[res.df$chromosome_name != filter.chr, ]
-      }
-      
       write.table(res.df, paste0("deseq2_", unique(sample.table$condition)[i], "_vs_all_genewalk.txt"), row.names = F, quote = F)
       
       j = j + 1
@@ -96,7 +116,8 @@ PerformDGETests <- function(cnts, normalized.cnts, species, sample.table, filter
       p2 <- GseaComparison(res.df,
                            fgsea.sets,
                            unique(sample.table$condition)[i],
-                           "all"
+                           "all",
+                           filter.gsea.genes
                            )
       p3 <- deg_heatmap(res.df,
                         normalized.cnts,
@@ -158,10 +179,14 @@ deg_volcano_plot <- function(de_markers, ident.1, ident.2, p_val_adj_cutoff = 0.
   
 }
 
-GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2){
+GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2, filter.gsea.genes){
   cluster.genes <- de.markers %>%
     arrange(desc(log2FoldChange)) %>% 
     dplyr::select(hgnc_symbol, log2FoldChange) # use avg_log2FC as ranking for now; https://www.biostars.org/p/9526168/
+  
+  if (filter.gsea.genes != "none"){
+    cluster.genes <- cluster.genes[cluster.genes$hgnc_symbol != filter.gsea.genes, ]
+  }
   
   ranks <- deframe(cluster.genes)
   

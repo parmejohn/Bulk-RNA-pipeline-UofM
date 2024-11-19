@@ -61,8 +61,16 @@ parser$add_argument(
 )
 
 parser$add_argument(
-  '-filter',
-  '--f',
+  '-chr_filter',
+  '--c',
+  type = "character",
+  required = TRUE,
+  nargs = '*',
+)
+
+parser$add_argument(
+  '-genes_gsea_filter',
+  '--g',
   type = "character",
   required = TRUE,
   nargs = '*',
@@ -100,4 +108,4 @@ if (args$s == "musmusculus") {
 sample.table <- read.csv(args$t)
 
 
-PerformDGETests(cnts, normalized.cnts, species, sample.table, args$filter)
+PerformDGETests(cnts, normalized.cnts, species, sample.table, args$chr_filter, args$genes_gsea_filter)
