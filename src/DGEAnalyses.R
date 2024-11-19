@@ -20,7 +20,6 @@ library(RColorBrewer)
 library(ComplexHeatmap)
 library(UpSetR)
 
-
 set.seed(333)
 
 parser <-
@@ -30,8 +29,17 @@ parser$add_argument(
   '--i',
   type = "character",
   required = TRUE,
-  nargs = '*',
-  help = 'All kallisto outputs'
+  nargs = 1,
+  help = 'Count matrix in a .tsv format, first two columns should be gene_id and gene_name'
+)
+
+parser$add_argument(
+  '-normalized',
+  '--n',
+  type = "character",
+  required = TRUE,
+  nargs = 1,
+  help = 'Normalized count matrix in a .tsv format, first two columns should be gene_id and gene_name'
 )
 
 parser$add_argument(
@@ -42,9 +50,28 @@ parser$add_argument(
   nargs = 1,
   help = 'Species name (Mus musculus, Homo sapiens); CASE-SENSITIVE'
 )
+
+parser$add_argument(
+  '-table',
+  '--t',
+  type = "character",
+  required = TRUE,
+  nargs = 1,
+  help = 'csv table for sample and condition'
+)
+
+parser$add_argument(
+  '-filter',
+  '--f',
+  type = "character",
+  required = TRUE,
+  nargs = '*',
+)
+
 args <- parser$parse_args()
 
-indir <- args$i
+cnts <- read_tsv(args$i)
+normalized.cnts <- read_tsv(args$n)
 
 thisFile <- function() {
   cmdArgs <- commandArgs(trailingOnly = FALSE)
@@ -70,4 +97,7 @@ if (args$s == "musmusculus") {
   print("bad")
 }
 
-PerformDGETests(indir, species)
+sample.table <- read.csv(args$t)
+
+
+PerformDGETests(cnts, normalized.cnts, species, sample.table, args$filter)
