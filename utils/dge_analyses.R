@@ -88,13 +88,16 @@ PerformDGETests <- function(cnts,
     } else {
       write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_res.txt'), row.names = F, quote = F)
     }
-    res.df.list <- append(res.df.list, list(res.df))
-    names(res.df.list)[i] <- paste0(group.pairs[[i]][1], "_vs_", group.pairs[[i]][2])
-    j = j + 1
-    
+
     p1 <- deg_volcano_plot(res.df, group.pairs[[i]][1], group.pairs[[i]][2])
     p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2], filter.gsea = filter.gsea.genes)
     p3 <- deg_heatmap(res.df, normalized.cnts, group.pairs[[i]][1], group.pairs[[i]][2], sample.table)
+    
+    rownames(res.df) <- NULL
+    #res.df <- column_to_rownames(res.df, "ensemblID")
+    res.df.list <- append(res.df.list, list(res.df))
+    j = j + 1
+    names(res.df.list)[i] <- paste0(group.pairs[[i]][1], "_vs_", group.pairs[[i]][2])
   }
   
   ### Perform 1 vs all comparison for gene walk results
@@ -110,10 +113,6 @@ PerformDGETests <- function(cnts,
       res.df <- merge(as.data.frame(res.df), gene_mapping, by = "ensemblID")
       
       write.table(res.df, paste0("deseq2_", unique(sample.table$condition)[i], "_vs_all_genewalk.txt"), row.names = F, quote = F)
-      
-      j = j + 1
-      res.df.list <- append(res.df.list, list(res.df))
-      names(res.df.list)[j] <- paste0(unique(sample.table$condition)[i], "_vs_all")
       
       p1 <- deg_volcano_plot(res.df,
                              unique(sample.table$condition)[i],
@@ -132,6 +131,11 @@ PerformDGETests <- function(cnts,
                         sample.table
                         )
       
+      rownames(res.df) <- NULL
+      #res.df <- column_to_rownames(res.df, "ensemblID")
+      res.df.list <- append(res.df.list, list(res.df))
+      j = j + 1
+      names(res.df.list)[j] <- paste0(unique(sample.table$condition)[i], "_vs_all")
     }
   }
   ## creating upset plot from all comparisons and intersections
@@ -195,7 +199,7 @@ GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2, filter.gsea
   if (length(filter.gsea) == 1 & filter.gsea[1] == "none"){
 	print("no filter applied")
 	} else { 
-	cluster.genes <- cluster.genes[cluster.genes$hgnc_symbol != filter.gsea, ]
+	  cluster.genes <- cluster.genes[cluster.genes$hgnc_symbol != filter.gsea, ]
   }
   
   ranks <- deframe(cluster.genes)
@@ -284,7 +288,7 @@ deg_heatmap <- function(de.markers, counts.df, ident.1, ident.2, sample.table){
 
 deg_upset <- function(res.df.list) {
   for (i in 1:length(res.df.list)) {
-    res.df.list[[i]] <- rownames(res.df.list[[i]])
+    res.df.list[[i]] <- (res.df.list[[i]]$ensemblID)
   }
   
   upset.df <- fromList(res.df.list)

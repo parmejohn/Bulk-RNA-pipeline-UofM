@@ -6,10 +6,13 @@ params.species = ''
 params.bind = ''
 params.chr_filter = 'none'
 params.genes_gsea_filter = 'none'
+params.majiq_config = 'none'
+params.gff = ''
+params.run_genewalk = true
 
 
 process DGEANALYSES {
-    containerOptions "--bind $params.bind"
+    containerOptions "--bind $params.bind --no-home"
     cache 'deep'
     debug true
   
@@ -41,7 +44,7 @@ process DGEANALYSES {
 }
 
 process GENEWALK {
-    containerOptions "--bind $params.bind"
+    containerOptions "--bind $params.bind --no-home"
     cache 'deep'
     debug true
   
@@ -61,6 +64,8 @@ process GENEWALK {
 
     script:
     """
+    #!/bin/bash
+    
     awk 'NR > 1 && \$7 < 0.05 && \$8 != "NA" {print \$NF}' $input_file | sort -k3,3nr > genewalk_filtered.txt
     filename=$input_file
     genewalk --project results --genes genewalk_filtered.txt --id_type $id_type --base_folder "\${filename%.*}"
@@ -68,15 +73,168 @@ process GENEWALK {
 	  """
 }
 
+process MAJIQBUILD {
+    containerOptions "--bind $params.bind --no-home"
+    cache 'lenient'
+    debug true
+  
+    publishDir (
+    path: "$params.outdir/majiq/",
+    mode: 'copy',
+    overwrite: true,
+    pattern:'*'
+    )
+    
+    input:
+    path input_file
+    path gff
+    path outdir
+
+    output:
+    path "build/*.majiq"
+    path "build/*.log"
+    path "build/*.sj"
+    path "build/*graph.sql", emit: splicegraph
+    path "build/*.sql-journal", optional: true
+    val true, emit: report
+
+    script:
+    """
+    #!/bin/bash
+    
+    majiq build -o build -c $input_file $gff
+	  """
+}
+
+process MAJIQQUANT {
+    containerOptions "--bind $params.bind --no-home"
+    cache 'lenient'
+    debug true
+  
+    publishDir (
+    path: "$params.outdir/majiq/",
+    mode: 'copy',
+    overwrite: true,
+    pattern:'*'
+    )
+    
+    input:
+    path input_file
+    path outdir
+    val magicbuild_signal
+
+    output:
+    path "deltapsi/*.log"
+    path "deltapsi/*.tsv"
+    path "deltapsi/*.voila", emit: voila_file
+    
+    script:
+    """
+    #!/bin/bash
+    
+    declare -A groups
+    while IFS='=' read -r key value; do
+        if [[ \$key != "["* ]]; then
+            groups["\$key"]=\$value
+        fi
+    done < <(awk '/^\\[experiments\\]/,/^\$/' $input_file | tail -n +2)
+    
+    # Generate pairwise comparisons without duplicates
+    group_names=("\${!groups[@]}")
+    for ((i=0; i<\${#group_names[@]}; i++)); do
+        for ((j=i+1; j<\${#group_names[@]}; j++)); do
+            grp1=\${group_names[i]}
+            grp2=\${group_names[j]}
+    
+            # Format all samples for grp1
+            grp1_samples=\$(echo "\${groups[\$grp1]}" | tr ',' '\n' | sed 's|^|$outdir/majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
+            # Format all samples for grp2
+            grp2_samples=\$(echo "\${groups[\$grp2]}" | tr ',' '\n' | sed 's|^|$outdir/majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
+    
+            # Construct the command
+            majiq deltapsi -o deltapsi -grp1 \$grp1_samples -grp2 \$grp2_samples -n \$grp1 \$grp2
+        done
+    done
+
+	  """
+}
+
+
+process VOILA {
+    containerOptions "--bind $params.bind --no-home"
+    cache 'lenient'
+    debug true
+  
+    publishDir (
+    path: "$params.outdir/majiq/voila",
+    mode: 'copy',
+    overwrite: true,
+    pattern:'*'
+    )
+    
+    input:
+    path voila_file
+    path splicegraph
+
+    output:
+    path "*"
+
+    script:
+    """
+    #!/bin/bash
+    
+    x=\$(basename $voila_file .voila)
+    voila tsv $voila_file $splicegraph -f \${x}_voila.tsv
+	  """
+}
+
+process VOILAMOD {
+    containerOptions "--bind $params.bind --no-home"
+    cache 'lenient'
+    debug true
+  
+    publishDir (
+    path: "$params.outdir/majiq/",
+    mode: 'copy',
+    overwrite: true,
+    pattern:'*'
+    )
+    
+    input:
+    path voila_file
+    path splicegraph
+
+    output:
+    path "*"
+
+    script:
+    """
+    #!/bin/bash
+    
+    x=\$(basename $voila_file .voila)
+    voila modulize $voila_file $splicegraph -d modulized --overwrite
+	  """
+}
+
 workflow {
   // Analyses
-  DGEANALYSES(params.counts_matrix, params.normalized_counts, 'homosapiens', params.sample_table, params.chr_filter, params.genes_gsea_filter)
+  DGEANALYSES(params.counts_matrix, params.normalized_counts, params.species, params.sample_table, params.chr_filter, params.genes_gsea_filter)
 
 	deg_files_ch = DGEANALYSES.out.deg_files.flatten()
-  if (params.species == 'homosapiens'){
-    GENEWALK(deg_files_ch, 'hgnc_symbol')
-  } else if (params.species == 'musmuculus') {
-    GENEWALK(deg_files_ch, 'mgi_id')
-  }
+	if(params.run_genewalk){
+    if (params.species == 'homosapiens'){
+      GENEWALK(deg_files_ch, 'hgnc_symbol')
+    } else if (params.species == 'musmuculus') {
+      GENEWALK(deg_files_ch, 'mgi_id')
+    }
+	}
+  
   //DIFFERENTIALSPLICING
+  if (params.majiq_config != 'none'){
+    MAJIQBUILD(params.majiq_config, params.gff, params.outdir)
+    MAJIQQUANT(params.majiq_config, params.outdir, MAJIQBUILD.out.report)
+
+    VOILA(MAJIQQUANT.out.voila_file.flatten(), MAJIQBUILD.out.splicegraph)
+    VOILAMOD(MAJIQQUANT.out.voila_file, MAJIQBUILD.out.splicegraph)
+  }
 }
