@@ -83,6 +83,10 @@ PerformDGETests <- function(cnts,
     res.df <- merge(as.data.frame(res), manual.gene.mapping, by = "ensemblID")
     res.df <- merge(as.data.frame(res.df), gene_mapping, by = "ensemblID")
     
+    res.df <- subset(res.df, !is.na(padj) |
+                       !is.na(pvalue) |
+                       !is.na(log2FoldChange))
+    
     write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_res.txt'), row.names = F, quote = F)
 
     p1 <- deg_volcano_plot(res.df, group.pairs[[i]][1], group.pairs[[i]][2])
@@ -90,7 +94,6 @@ PerformDGETests <- function(cnts,
     p3 <- deg_heatmap(res.df, normalized.cnts, group.pairs[[i]][1], group.pairs[[i]][2], sample.table)
     
     rownames(res.df) <- NULL
-    #res.df <- column_to_rownames(res.df, "ensemblID")
     res.df.list <- append(res.df.list, list(res.df))
     j = j + 1
     names(res.df.list)[i] <- paste0(group.pairs[[i]][1], "_vs_", group.pairs[[i]][2])
@@ -117,34 +120,35 @@ PerformDGETests <- function(cnts,
 ## helper fxns
 deg_volcano_plot <- function(de_markers, ident.1, ident.2, p_val_adj_cutoff = 0.05, avg_log2FC_cutoff = 2){
   
-  unadjusted.pval.cutoff <- -log10(max(de_markers$pvalue[!is.na(de_markers$padj) & 
-                                                           de_markers$padj <= p_val_adj_cutoff]))
+  keyvals <- ifelse(
+    de_markers$log2FoldChange <= -avg_log2FC_cutoff & de_markers$padj < p_val_adj_cutoff, 'blue',
+    ifelse(de_markers$log2FoldChange >= avg_log2FC_cutoff & de_markers$padj < p_val_adj_cutoff, 'red',
+           'grey'))
+  keyvals[is.na(keyvals)] <- 'grey'
+  names(keyvals)[keyvals == 'red'] <- paste0('Upregulated in ', ident.1)
+  names(keyvals)[keyvals == 'grey'] <- 'Not significant'
+  names(keyvals)[keyvals == 'blue'] <- paste0('Upregulated in ', ident.2)
   
-  de_markers$significance <- "Not Significant"
-  de_markers$significance[de_markers[["log2FoldChange"]] >= avg_log2FC_cutoff & 
-                            de_markers[["padj"]] < p_val_adj_cutoff] <- paste0("Upregulated in ", ident.1)
-  de_markers$significance[de_markers[["log2FoldChange"]] < -(avg_log2FC_cutoff) & 
-                            de_markers[["padj"]] <= p_val_adj_cutoff] <- paste0("Upregulated in ", ident.2)
-  de_markers$significance <- factor(de_markers$sig, levels = c(paste0("Upregulated in ", ident.2), "Not Significant", paste0("Upregulated in ", ident.1)))
+  p <- EnhancedVolcano(de_markers,
+                  lab = de_markers$gene_name,
+                  x = 'log2FoldChange',
+                  y = 'pvalue',
+                  FCcutoff=avg_log2FC_cutoff,
+                  pCutoff=p_val_adj_cutoff,
+                  pCutoffCol="padj",
+                  pointSize = 1.0,
+                  labSize = 3.0,
+                  drawConnectors = TRUE,
+                  arrowheads = F, 
+                  colCustom = keyvals,
+                  legendPosition = 'right',
+                  title = "DESeq2: Volcano Plot",
+                  subtitle = paste0(ident.1, " vs ", ident.2),
+                  caption = paste0("total = ", nrow(de_markers), " genes"),
+                  legendIconSize = 2.5,
+                  legendLabSize = 11)
   
-  colors <- setNames(
-    c("red", "grey", "blue"),
-    c(paste0("Upregulated in ", ident.1), "Not Significant", paste0("Upregulated in ", ident.2))
-  )
-  
-  p <- ggplot(de_markers, aes(log2FoldChange, -log10(pvalue), color = significance, fill = significance)) + 
-    geom_point(size = 0.5, alpha = 0.5) + 
-    theme_bw() +
-    scale_color_manual(values = colors) +
-    ylab("-log10(unadjusted p-value)") + 
-    geom_text_repel(aes(label = ifelse(((padj < p_val_adj_cutoff & log2FoldChange >= avg_log2FC_cutoff)|
-                                          (padj < p_val_adj_cutoff & log2FoldChange <= -avg_log2FC_cutoff)), 
-                                       gene_name, "")), colour = "black", size = 3) + 
-    geom_hline(yintercept=unadjusted.pval.cutoff, linetype="dashed", color = "black") +
-    geom_vline(xintercept=c(-avg_log2FC_cutoff, avg_log2FC_cutoff), linetype="dashed", color = "black") +
-    ggtitle(paste0("DESeq2 Volcano Plot: ", ident.1, " vs ", ident.2))
   ggsave(filename = paste0("deseq2_volcano_", ident.1, "_vs_", ident.2, '.pdf'), plot = p, width=8, height=8)
-  
 }
 
 GseaComparison <- function(de.markers, fgsea.sets, ident.1, ident.2, filter.gsea){
@@ -189,12 +193,8 @@ deg_heatmap <- function(de.markers, counts.df, ident.1, ident.2, sample.table){
   sample.table <- sample.table[order(sample.table$condition),]
   counts.df <- counts.df[, sample.table$sample]
   
-  if (ident.2 == "all") {
-    sub.samples <- sample.table
-  } else {
-    sub.samples <- subset(sample.table, condition == ident.1 | condition == ident.2)
-  }
-  
+  sub.samples <- subset(sample.table, condition == ident.1 | condition == ident.2)
+
   ann <- data.frame(sub.samples$condition)
   colnames(ann) <- c('Condition')
   col = list(c=structure(brewer.pal(length(unique(sub.samples$condition)), "Set2"), 
@@ -211,9 +211,8 @@ deg_heatmap <- function(de.markers, counts.df, ident.1, ident.2, sample.table){
   row_labels = structure(de.markers.filtered$gene_name, names = de.markers.filtered$ensemblID)
   row_labels[is.na(row_labels) | row_labels == ""] <- names(row_labels)[is.na(row_labels) | row_labels == ""]
   
-  if (ident.2 != "all") {
-    counts.df.filtered <- counts.df.filtered %>% dplyr::select(sub.samples$sample)
-  }
+  counts.df.filtered <- counts.df.filtered %>% dplyr::select(sub.samples$sample)
+
   
   heat <- t(scale(t(counts.df.filtered)))
   
