@@ -83,11 +83,7 @@ PerformDGETests <- function(cnts,
     res.df <- merge(as.data.frame(res), manual.gene.mapping, by = "ensemblID")
     res.df <- merge(as.data.frame(res.df), gene_mapping, by = "ensemblID")
     
-    if (length(unique(sample.table$condition)) == 2){
-      write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_genewalk.txt'), row.names = F, quote = F)
-    } else {
-      write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_res.txt'), row.names = F, quote = F)
-    }
+    write.table(res.df, paste0("deseq2_", group.pairs[[i]][1], "_vs_", group.pairs[[i]][2], '_res.txt'), row.names = F, quote = F)
 
     p1 <- deg_volcano_plot(res.df, group.pairs[[i]][1], group.pairs[[i]][2])
     p2 <- GseaComparison(res.df, fgsea.sets, group.pairs[[i]][1], group.pairs[[i]][2], filter.gsea = filter.gsea.genes)
@@ -100,44 +96,6 @@ PerformDGETests <- function(cnts,
     names(res.df.list)[i] <- paste0(group.pairs[[i]][1], "_vs_", group.pairs[[i]][2])
   }
   
-  ### Perform 1 vs all comparison for gene walk results
-  if (length(unique(sample.table$condition)) > 2){
-    for(i in 1:length(unique(sample.table$condition))){
-      res <- results(dds, 
-                     contrast = list(paste0("condition", unique(sample.table$condition)[i]),paste0("condition", unique(sample.table$condition)[-i])),
-                     listValues = c(1, -1/length(unique(sample.table$condition)[-i]))
-                     )
-      res$ensemblID <- rownames(res)
-      
-      res.df <- merge(as.data.frame(res), manual.gene.mapping, by = "ensemblID")
-      res.df <- merge(as.data.frame(res.df), gene_mapping, by = "ensemblID")
-      
-      write.table(res.df, paste0("deseq2_", unique(sample.table$condition)[i], "_vs_all_genewalk.txt"), row.names = F, quote = F)
-      
-      p1 <- deg_volcano_plot(res.df,
-                             unique(sample.table$condition)[i],
-                             "all"
-                             )
-      p2 <- GseaComparison(res.df,
-                           fgsea.sets,
-                           unique(sample.table$condition)[i],
-                           "all",
-                           filter.gsea = filter.gsea.genes
-                           )
-      p3 <- deg_heatmap(res.df,
-                        normalized.cnts,
-                        unique(sample.table$condition)[i],
-                        "all",
-                        sample.table
-                        )
-      
-      rownames(res.df) <- NULL
-      #res.df <- column_to_rownames(res.df, "ensemblID")
-      res.df.list <- append(res.df.list, list(res.df))
-      j = j + 1
-      names(res.df.list)[j] <- paste0(unique(sample.table$condition)[i], "_vs_all")
-    }
-  }
   ## creating upset plot from all comparisons and intersections
   res.df.list.up <- lapply(res.df.list, subset, padj < 0.05 & log2FoldChange >= 2)
   res.df.list.dn <- lapply(res.df.list, subset, padj < 0.05 & log2FoldChange <= -2)
@@ -145,12 +103,12 @@ PerformDGETests <- function(cnts,
   upset.plot.dn <- deg_upset(res.df.list.dn)
   
   pdf("deg_upset_upreg.pdf", width = 10, height = 6, onefile=FALSE)
-  upset.plot.up
+  print(upset.plot.up)
   grid.text("Upregulated genes\n padj < 0.05 & log2FC >= 2",x = 0.20, y=0.85, gp=gpar(fontsize=16))
   graphics.off()
   
   pdf("deg_upset_dnreg.pdf", width = 10, height = 6, onefile=FALSE)
-  upset.plot.dn
+  print(upset.plot.dn)
   grid.text("Downregulated genes\n padj < 0.05 & log2FC <= -2",x = 0.20, y=0.85, gp=gpar(fontsize=16))
   graphics.off()
 }

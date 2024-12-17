@@ -9,12 +9,14 @@ params.genes_gsea_filter = 'none'
 params.majiq_config = 'none'
 params.gff = ''
 params.run_genewalk = true
+params.run_neuroestimator = true
 
 
 process DGEANALYSES {
     containerOptions "--bind $params.bind --no-home"
     cache 'deep'
     debug true
+    label 'general_analyses'
   
     publishDir (
     path: "$params.outdir/dge/",
@@ -32,8 +34,7 @@ process DGEANALYSES {
     val genes_gsea_filter
 
     output:
-    path "*genewalk.txt", emit: deg_files
-    path "*res.txt", optional: true
+    path "*res.txt", emit: deg_files
     path "gsea*.txt"
     path "*.pdf"
     
@@ -47,6 +48,7 @@ process GENEWALK {
     containerOptions "--bind $params.bind --no-home"
     cache 'deep'
     debug true
+    label 'general_analyses'
   
     publishDir (
     path: "$params.outdir/genewalk/",
@@ -77,6 +79,7 @@ process MAJIQBUILD {
     containerOptions "--bind $params.bind --no-home"
     cache 'lenient'
     debug true
+    label 'general_analyses'
   
     publishDir (
     path: "$params.outdir/majiq/",
@@ -110,6 +113,7 @@ process MAJIQQUANT {
     containerOptions "--bind $params.bind --no-home"
     cache 'lenient'
     debug true
+    label 'general_analyses'
   
     publishDir (
     path: "$params.outdir/majiq/",
@@ -164,9 +168,10 @@ process VOILA {
     containerOptions "--bind $params.bind --no-home"
     cache 'lenient'
     debug true
+    label 'general_analyses'
   
     publishDir (
-    path: "$params.outdir/majiq/voila",
+    path: "$params.outdir/majiq/voila_tsv",
     mode: 'copy',
     overwrite: true,
     pattern:'*'
@@ -192,6 +197,7 @@ process VOILAMOD {
     containerOptions "--bind $params.bind --no-home"
     cache 'lenient'
     debug true
+    label 'general_analyses'
   
     publishDir (
     path: "$params.outdir/majiq/",
@@ -216,12 +222,64 @@ process VOILAMOD {
 	  """
 }
 
-workflow {
-  // Analyses
-  DGEANALYSES(params.counts_matrix, params.normalized_counts, params.species, params.sample_table, params.chr_filter, params.genes_gsea_filter)
+process NEUROESTIMATOR {
+    containerOptions "--bind $params.bind --no-home"
+    cache 'lenient'
+    debug true
+    label 'neuroestimator'
+        
+    publishDir (
+      path: "$params.outdir/neuroestimator/",
+      mode: 'copy',
+      overwrite: true,
+      pattern:'*'
+    )
+    
+    input:
+    path counts_table
+    val species
+    
+    output:
+    path "neuroestimator_results.txt"
+    
+    script:
+    """
+	  ${projectDir}/src/Neuroestimator.R $counts_table $species
+    """
+}
 
+process NEUROESTIMATORPLOT {
+    containerOptions "--bind $params.bind --no-home"
+    cache 'lenient'
+    debug true
+    label 'neuroestimator_plot'
+    
+    publishDir (
+      path: "$params.outdir/neuroestimator/",
+      mode: 'copy',
+      overwrite: true,
+      pattern:'*'
+    )
+    
+    input:
+    path neuroestimator_results
+    path sample_table
+    
+    output:
+    path "neuroestimator_results.pdf"
+    
+    script:
+    """
+	  ${projectDir}/src/NeuroestimatorPlot.R $neuroestimator_results $sample_table
+    """
+}
+
+workflow {
+  // DIFFERENTIAL GENE EXPRESSION ANALYSES
+  DGEANALYSES(params.counts_matrix, params.normalized_counts, params.species, params.sample_table, params.chr_filter, params.genes_gsea_filter)
 	deg_files_ch = DGEANALYSES.out.deg_files.flatten()
-	if(params.run_genewalk){
+
+	if (params.run_genewalk){
     if (params.species == 'homosapiens'){
       GENEWALK(deg_files_ch, 'hgnc_symbol')
     } else if (params.species == 'musmuculus') {
@@ -229,12 +287,18 @@ workflow {
     }
 	}
   
-  //DIFFERENTIALSPLICING
+  // DIFFERENTIALSPLICING
   if (params.majiq_config != 'none'){
     MAJIQBUILD(params.majiq_config, params.gff, params.outdir)
     MAJIQQUANT(params.majiq_config, params.outdir, MAJIQBUILD.out.report)
 
     VOILA(MAJIQQUANT.out.voila_file.flatten(), MAJIQBUILD.out.splicegraph)
     VOILAMOD(MAJIQQUANT.out.voila_file, MAJIQBUILD.out.splicegraph)
+  }
+  
+  // NEUROESTIMATOR
+  if (params.run_neuroestimator){
+    neuroestimator_ch = NEUROESTIMATOR(params.counts_matrix, params.species)
+    NEUROESTIMATORPLOT(neuroestimator_ch, params.sample_table)
   }
 }
