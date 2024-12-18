@@ -3,7 +3,7 @@ library(neuroestimator)
 
 NeuroestimatorResults <- function(table, species){ 
   
-  Sys.setenv(RETICULATE_MINICONDA_PATH="~/miniconda3")
+  Sys.setenv(RETICULATE_MINICONDA_PATH="/opt/conda")
   reticulate::use_condaenv("neuroestimator")
   
   res <- read.table(table, header=T)

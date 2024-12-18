@@ -48,7 +48,7 @@ process GENEWALK {
     containerOptions "--bind $params.bind --no-home"
     cache 'deep'
     debug true
-    label 'general_analyses'
+    label 'genewalk'
   
     publishDir (
     path: "$params.outdir/genewalk/",
