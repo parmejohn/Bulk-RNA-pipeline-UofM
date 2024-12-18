@@ -94,6 +94,7 @@ process MAJIQBUILD {
     path outdir
 
     output:
+	path "build", emit: build_dir
     path "build/*.majiq", emit: majiq_files
     path "build/*.log"
     path "build/*.sj"
@@ -124,7 +125,7 @@ process MAJIQQUANT {
     
     input:
     path input_file
-    path outdir
+    path builddir
     val magicbuild_signal
 
     output:
@@ -151,9 +152,9 @@ process MAJIQQUANT {
             grp2=\${group_names[j]}
     
             # Format all samples for grp1
-            grp1_samples=\$(echo "\${groups[\$grp1]}" | tr ',' '\n' | sed 's|^|majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
+            grp1_samples=\$(echo "\${groups[\$grp1]}" | tr ',' '\n' | sed 's|^|${builddir}/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
             # Format all samples for grp2
-            grp2_samples=\$(echo "\${groups[\$grp2]}" | tr ',' '\n' | sed 's|^|majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
+            grp2_samples=\$(echo "\${groups[\$grp2]}" | tr ',' '\n' | sed 's|^|${builddir}/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
     
             # Construct the command
             majiq deltapsi -o deltapsi -grp1 \$grp1_samples -grp2 \$grp2_samples -n \$grp1 \$grp2
@@ -290,7 +291,7 @@ workflow {
   // DIFFERENTIALSPLICING
   if (params.majiq_config != 'none'){
     MAJIQBUILD(params.majiq_config, params.gff, params.outdir)
-    MAJIQQUANT(params.majiq_config, params.outdir, MAJIQBUILD.out.report)
+    MAJIQQUANT(params.majiq_config, MAJIQBUILD.out.build_dir, MAJIQBUILD.out.report)
 
     VOILA(MAJIQQUANT.out.voila_file.flatten(), MAJIQBUILD.out.splicegraph)
     VOILAMOD(MAJIQQUANT.out.voila_file, MAJIQBUILD.out.splicegraph)
