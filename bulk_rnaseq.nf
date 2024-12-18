@@ -94,7 +94,7 @@ process MAJIQBUILD {
     path outdir
 
     output:
-    path "build/*.majiq"
+    path "build/*.majiq", emit: majiq_files
     path "build/*.log"
     path "build/*.sj"
     path "build/*graph.sql", emit: splicegraph
@@ -151,9 +151,9 @@ process MAJIQQUANT {
             grp2=\${group_names[j]}
     
             # Format all samples for grp1
-            grp1_samples=\$(echo "\${groups[\$grp1]}" | tr ',' '\n' | sed 's|^|$outdir/majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
+            grp1_samples=\$(echo "\${groups[\$grp1]}" | tr ',' '\n' | sed 's|^|majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
             # Format all samples for grp2
-            grp2_samples=\$(echo "\${groups[\$grp2]}" | tr ',' '\n' | sed 's|^|$outdir/majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
+            grp2_samples=\$(echo "\${groups[\$grp2]}" | tr ',' '\n' | sed 's|^|majiq/build/|' | sed 's|\$|.majiq|' | tr '\n' ' ')
     
             # Construct the command
             majiq deltapsi -o deltapsi -grp1 \$grp1_samples -grp2 \$grp2_samples -n \$grp1 \$grp2

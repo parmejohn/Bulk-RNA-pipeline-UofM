@@ -114,6 +114,29 @@ PerformDGETests <- function(cnts,
   print(upset.plot.dn)
   grid.text("Downregulated genes\n padj < 0.05 & log2FC <= -2",x = 0.20, y=0.85, gp=gpar(fontsize=16))
   graphics.off()
+  
+  
+  ## create PCA and heatmap to determine sample similarity
+  # variance stabilizing transformation of the count matrix
+  vsd <- vst(dds, blind = FALSE)
+
+  sampleDists <- dist(t(assay(vsd)))
+  
+  sampleDistMatrix <- as.matrix( sampleDists )
+  rownames(sampleDistMatrix) <- paste(sample.table$sample, sample.table$condition, sep ="-")
+  colnames(sampleDistMatrix) <- NULL
+  colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+  
+  # create hiearchical clustering heatmap from the vsd matrix
+  pdf("sample_similarity_heatmap.pdf", width=8, height=8)
+  pheatmap(sampleDistMatrix,
+           clustering_distance_rows = sampleDists,
+           clustering_distance_cols = sampleDists,
+           col = colors)
+  graphics.off()
+
+  pcaPlot <- plotPCA(vsd)
+  ggsave("sample_similarity_pca.pdf", pcaPlot, width = 8, height = 8)
 }
 
 ##### FXNS #####
