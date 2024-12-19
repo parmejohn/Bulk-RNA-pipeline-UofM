@@ -24,29 +24,29 @@ nextflow run */Bulk-RNA-pipeline-UofM/bulk_rnaseq.nf \
 	--gff [path] \
 	--chr_filter [string] \
 	--genes_gsea_filter [string]
-	--run_genewalk [*true*|false]
-	--run_neuroestimator [*true*|false]
+	--run_genewalk [**true**|false]
+	--run_neuroestimator [**true**|false]
 	...
 ```
 
 ### Arguments
-<> = required
-[] = optional
-... = nextflow options
+- <> = required
+- [] = optional
+- ... = nextflow options
 
-- counts_matrix: Tab-delimited raw count matrix. Column 1 should be labelled `gene_id` and contain Ensembl IDs, column 2 should be labelled `gene_name` and have the corresponding gene symbol. The rest of the columns should match the sample names provided in the `sample_table` file.
-- normalized_counts: Same as the raw, except the counts should be normalized
-- sample_table: Comma-separated file. Header is required to be `sample,condition`. See example below for more info.
-- species: Only `homoesapiens` or `musmusculus` is supported for now.
-- bind: Paths where input or output data is moving. This is because apptainer(singularity) without root permission needs explicit file paths. Multiple paths can be defined with a ',' to seperate them.
-- outdir: Folder where results will be outputted
-- majiq_config: Settings config that needs to match MAJIQ's specifications. Please see example below, or find more info on their [documentation](https://biociphers.bitbucket.io/majiq-docs-academic/getting-started-guide/builder.html). If this parameter is left empty, MAJIQ will be skipped
+- **counts_matrix**: Tab-delimited raw count matrix. Column 1 should be labelled `gene_id` and contain Ensembl IDs, column 2 should be labelled `gene_name` and have the corresponding gene symbol. The rest of the columns should match the sample names provided in the `sample_table` file.
+- **normalized_counts**: Same as the raw, except the counts should be normalized
+- **sample_table**: Comma-separated file. Header is required to be `sample,condition`. See example below for more info.
+- **species**: Only `homoesapiens` or `musmusculus` is supported for now.
+- **bind**: Paths where input or output data is moving. This is because apptainer(singularity) without root permission needs explicit file paths. Multiple paths can be defined with a ',' to seperate them.
+- **outdir**: Folder where results will be outputted
+- **majiq_config**: Settings config that needs to match MAJIQ's specifications. Please see example below, or find more info on their [documentation](https://biociphers.bitbucket.io/majiq-docs-academic/getting-started-guide/builder.html). If this parameter is left empty, MAJIQ will be skipped
 	- Will require BAM files and preferably knowing the strandess of your samples.
-- gff: A GFF3 file that will be used in MAJIQ.
-- chr_filter: Chromosomes to filter out during differential gene expression analyses
-- genes_gsea_filter: Genes to filter out during gene-set enrichment analysis (GSEA)
-- run_genewalk: Perform Genewalk analysis
-- run_neuroestimator: Perform NEUROeSTIMator analysis
+- **gff**: A GFF3 file that will be used in MAJIQ.
+- **chr_filter**: Chromosomes to filter out during differential gene expression analyses
+- **genes_gsea_filter**: Genes to filter out during gene-set enrichment analysis (GSEA)
+- **run_genewalk**: Perform Genewalk analysis
+- **run_neuroestimator**: Perform NEUROeSTIMator analysis
 
 #### counts_matrix/normalized_matrix example
 ```
@@ -89,17 +89,17 @@ One can also use their online [Command line builder](https://biociphers.bitbucke
 	- This method uses ALL genes, not an over-representation analyses method; DEGs would affect the pathways, but will have to filter the GSEA for them
 - Files = dge/
   - Plots
-    - deg_heatmap_X_vs_Y.pdf: Heatmap of DEGs for a given comparison. Rows are hierarchically clustered and expression is Z-scaled. |log2FC| >= 2 & padj < 0.05
-    - deseq2_volcano_RTTFAN1KO_vs_CTRL.pdf: Volcano plot of all genes for a given comparison. Please note that cutoff uses padj but y-axis uses the unadjusted p-value. |log2FC| >= 2 & padj < 0.05
-    - gsea_X_vs_Y.pdf: GSEA for a given comparison. Positive (red) normalized enrichment score (NES)  are upregulated in X; Negative NES are upregulated in Y
-    - sample_similarity_heatmap.pdf: Heatmap representing sample clustering using a distance matrix. Counts are transformed via variance stabilizing transformation (VST) in DESeq2. Hierarchical is done on both the rows and columns.
+    - **deg_heatmap_X_vs_Y.pdf**: Heatmap of DEGs for a given comparison. Rows are hierarchically clustered and expression is Z-scaled. |log2FC| >= 2 & padj < 0.05
+    - **deseq2_volcano_RTTFAN1KO_vs_CTRL.pdf**: Volcano plot of all genes for a given comparison. Please note that cutoff uses padj but y-axis uses the unadjusted p-value. |log2FC| >= 2 & padj < 0.05
+    - **gsea_X_vs_Y.pdf**: GSEA for a given comparison. Positive (red) normalized enrichment score (NES)  are upregulated in X; Negative NES are upregulated in Y
+    - **sample_similarity_heatmap.pdf**: Heatmap representing sample clustering using a distance matrix. Counts are transformed via variance stabilizing transformation (VST) in DESeq2. Hierarchical is done on both the rows and columns.
     	- Notebly, large portion of genes will not be differentially expressed, so it can lead to some samples having high similarity scores to one another.
-    - sample_similarity_pca.pdf: PCA plot of all samples. Grouping is done by condition by default.
-    - deg_upset_upreg.pdf: Upset plot showing intersection of all upregulated genes (condition X). log2FC >= 2 & padj < 0.05
-    - deg_upset_dnreg.pdf: Upset plot showing intersection of all downregulated genes (condition Y). log2FC <= -2 & padj < 0.05
+    - **sample_similarity_pca.pdf**: PCA plot of all samples. Grouping is done by condition by default.
+    - **deg_upset_upreg.pdf**: Upset plot showing intersection of all upregulated genes (condition X). log2FC >= 2 & padj < 0.05
+    - **deg_upset_dnreg.pdf**: Upset plot showing intersection of all downregulated genes (condition Y). log2FC <= -2 & padj < 0.05
   - Data
-    - deseq2_X_vs_Y_res.txt: Tab-delimited file with DESeq2 results, unfiltered
-    - gsea_X_vs_Y.txt: Tab-delimited file with GSEA results, unfiltered
+    - **deseq2_X_vs_Y_res.txt**: Tab-delimited file with DESeq2 results, unfiltered
+    - **gsea_X_vs_Y.txt**: Tab-delimited file with GSEA results, unfiltered
 </details>
 
 
@@ -112,7 +112,7 @@ One can also use their online [Command line builder](https://biociphers.bitbucke
 	- Uses the DESeq2 results (ranked by log2FC)
 	- Determines the importance of the gene and what biological pathways it impacts
 - Files = genewalk/
-  - deseq2_X_vs_Y_res/:
+  - **deseq2_X_vs_Y_res/:** Please refer to their thorough [documentation](https://churchman.med.harvard.edu/genewalk) and [GitHub](https://github.com/churchmanlab/genewalk) for file descriptions.
 </details>
 
 #### Differential splicing (MAJIQ)
@@ -126,14 +126,13 @@ One can also use their online [Command line builder](https://biociphers.bitbucke
 	- Voila: Create visualizations and interpretable files
 - Aids in discovering differential splice variants
 - Files = majiq/
-  - build/: Files to use downstream MAJIQ functions
-  - voila_tsv/:
-    - *deltapsi_voila.tsv: 
-  - modulized/ (only listing what I think is the most important to view):
-  	- summary.tsv: Each row is a splicing module and list the total counts for each type of splicing event in the module
+  - **build/**: Files to use downstream MAJIQ functions
+  - **voila_tsv/**: Despite the naming schema, these files are produced by majiq quant, to be use in downstream voila visualizations. The .tsv's contain the relative LSV abundance (PSI) and changes in the relative LSV abundance (delta PSI) between conditions.
+  - **modulized/** (only listing what I think is the most important to view):
+  	- **summary.tsv**: Each row is a splicing module and list the total counts for each type of splicing event in the module
 		- A module is defined as single entry and exit regions of the splicegraph
 		- Unique single source and single target exon
-	- heatmap.tsv: When using deltapsi, the junctions with the max absolute deltapsi value is chosen from each module, and one can see all of the deltapsi values for each comparison listed here.
+	- **heatmap.tsv**: When using deltapsi, the junctions with the max absolute deltapsi value is chosen from each module, and one can see all of the deltapsi values for each comparison listed here.
     - ...
 
 - For more in-depth file descriptions please visit
@@ -145,10 +144,10 @@ One can also use their online [Command line builder](https://biociphers.bitbucke
 <br>
 
 - Below is my own understanding of each column that is shown in MAJIQ. Please visit the MAJIQ [documentation](https://biociphers.bitbucket.io/majiq-docs-academic/getting-started-guide/quick-overview.html) or their [BitBucket](https://bitbucket.org/biociphers/majiq_academic) page
-	- lsv_id = `s` or `t` denotes whether it is the source or target
+	- **lsv_id** = `s` or `t` denotes whether it is the source or target
 		- can be visualized when looking using voila view (see below on how to run it)
 		- [Example](https://majiq.biociphers.org/green_et_al_2017/examples/hogenesch/adr-cer-8v8/) from the MAJIQ documentation
-	- lsv_type = rough graphical output for the voila view plot
+	- **lsv_type** = rough graphical output for the voila view plot
 		- From their [Google Groups forums](https://groups.google.com/g/majiq_voila/c/tOrbP179tuY)
 			- starts by (s or t) being source or target
 			- each '|' is a new junction representation and if there is intron_retention the last character is 'i'
@@ -157,25 +156,25 @@ One can also use their online [Command line builder](https://biociphers.bitbucke
 				- Y is the ordinal exon connecting the lsv
 				- Z is the ordinal splice site in exon Y
 				- K is the total number of splice sites that Y has
-	- mean_dpsi_per_lsv_junction = direction of change for a given junction
+	- **mean_dpsi_per_lsv_junction** = direction of change for a given junction
 		- One can think of it as the the fold-change equivelent in a differential expression analysis
-	- probability_changing = probability, that the dpsi is above <threshold 1 used>
+	- **probability_changing** = probability, that the dpsi is above <threshold 1 used>
 		- default is 0.2
-	- probability_non_changing = probability, that the dpsi is below <threshold 2 used>
+	- **probability_non_changing** = probability, that the dpsi is below <threshold 2 used>
 		- default = 0.05
-	- \*mean_psi = E |PSI| adds up to 100% of all of the LSV's junction
+	- **\*mean_psi** = E |PSI| adds up to 100% of all of the LSV's junction
 		- mean psi value from the different experiments
 		- **negative** values correspond to **increased differential inclusion in condition1** compared with condition2
 	- num_junctions
 	- num_exons
-	- de_novo_junctions =  which of these junctions are unannotated
+	- **de_novo_junctions** =  which of these junctions are unannotated
 		- junctions are annotated using the GFF3 file and RNA-seq files
 	- seqid = unsure
 	- strand
-	- junctions_coords = the positions of the gene denoting the exon junction locations and how large they are
-	- exons_coords = location and size of a given exon
-	- ir_coords = intron retention coordinates
-	- ucsc_lsv_link = genome browser view of the whole lsv region
+	- **junctions_coords** = the positions of the gene denoting the exon junction locations and how large they are
+	- **exons_coords** = location and size of a given exon
+	- **ir_coords** = intron retention coordinates
+	- **ucsc_lsv_link** = genome browser view of the whole lsv region
 </details>
 
 #### Quantifying neuronal activity (NEUROeSTIMator)
@@ -188,8 +187,8 @@ One can also use their online [Command line builder](https://biociphers.bitbucke
 	- Scores based off 22 neuronal activity markers
 		- Each sample will have an activity score that ranges from 0-1
 - Files = neuroestimator/
-  - neuroestimator_results.txt: Tab-delimited table with samples and their predicted activity score
-  - neuroestimator_results.pdf: Box plot for predicted activities across conditions. Kolmogorov–Smirnov (KS) test
+  - **neuroestimator_results.txt**: Tab-delimited table with samples and their predicted activity score
+  - **neuroestimator_results.pdf**: Box plot for predicted activities across conditions. Kolmogorov–Smirnov (KS) test is performed to test for significance between the each condition.
 
 - For more in-depth file descriptions please visit
 </details>

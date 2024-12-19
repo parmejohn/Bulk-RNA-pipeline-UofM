@@ -129,10 +129,10 @@ PerformDGETests <- function(cnts,
   
   # create hiearchical clustering heatmap from the vsd matrix
   pdf("sample_similarity_heatmap.pdf", width=8, height=8)
-  pheatmap(sampleDistMatrix,
+  print(pheatmap(sampleDistMatrix,
            clustering_distance_rows = sampleDists,
            clustering_distance_cols = sampleDists,
-           col = colors)
+           col = colors))
   graphics.off()
 
   pcaPlot <- plotPCA(vsd)
