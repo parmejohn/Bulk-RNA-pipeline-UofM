@@ -9,6 +9,8 @@ params.genes_gsea_filter = 'none'
 params.majiq_config = 'none'
 params.gff = ''
 params.run_genewalk = true
+params.genewalk_pval = 0.05
+params.genewalk_fc = 0
 params.run_neuroestimator = true
 
 
@@ -60,6 +62,8 @@ process GENEWALK {
     input:
     file input_file
     val id_type
+    val genewalk_pval
+    val genewalk_fc
 
     output:
     path "*"
@@ -68,7 +72,7 @@ process GENEWALK {
     """
     #!/bin/bash
     
-    awk 'NR > 1 && \$7 < 0.05 && \$8 != "NA" {print \$NF}' $input_file | sort -k3,3nr > genewalk_filtered.txt
+    awk 'NR > 1 && \$7 < $genewalk_pval && \$8 != "NA" && (\$3 >= $genewalk_fc || \$3 <= -$genewalk_fc) {print \$NF}' $input_file | sort -k3,3nr > genewalk_filtered.txt
     filename=$input_file
     genewalk --project results --genes genewalk_filtered.txt --id_type $id_type --base_folder "\${filename%.*}"
 	  rm genewalk_filtered.txt
@@ -94,7 +98,7 @@ process MAJIQBUILD {
     path outdir
 
     output:
-	path "build", emit: build_dir
+	  path "build", emit: build_dir
     path "build/*.majiq", emit: majiq_files
     path "build/*.log"
     path "build/*.sj"
