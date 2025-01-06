@@ -9,6 +9,26 @@
 - Apptainer(singularity); tested with version 1.2.5-1.el7
 - Highly reccommend using the [nfcore/rnaseq](https://nf-co.re/rnaseq/3.17.0/) pipeline for QC, alignment, and quantification for raw bulk RNA-seq
 
+#### nfcore/rnaseq example
+```
+nextflow run nf-core/rnaseq \
+    --input </path/to/file/>sample_sheet.csv \
+    --outdir </path/to/output/> \
+    --gtf </path/to/file/>Homo_sapiens.GRCh38.113.gtf.gz \
+    --fasta </path/to/file/>Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
+    --pseudo_aligner kallisto
+```
+- If using apptainer, you will have to add the nextflow argument `-profile apptainer` to the `nextflow run` command. Also, `export APPTAINER_BINDPATH=` has to be run beforehand with the appropiate paths. Please look to the [Arguments](#arguements) section for `bind` for usage and examples.
+
+##### sample_sheet.csv for nfcore/rnaseq
+```
+sample,fastq_1,fastq_2,strandedness
+npc-1-A9,</path/to/file/>RNA_rtt-alana_20-npc-1-A9_RTT_hg38_R1.fastq.gz,</path/to/file/>RNA_rtt-alana_20-npc-1-A9_RTT_hg38_R2.fastq.gz,auto
+npc-1-C8,</path/to/file/>RNA_rtt-alana_20-npc-1-C8_RTTFAN1KO_hg38_R1.fastq.gz,</path/to/file/>RNA_rtt-alana_20-npc-1-C8_RTTFAN1KO_hg38_R2.fastq.gz,auto
+...
+```
+- Other examples can be found on the nfcore/rnaseq website
+
 ## Usage
 Run the pipeline in the directory of your choice
 
@@ -84,9 +104,9 @@ One can also use MAJIQ's online [Command line builder](https://biociphers.bitbuc
 #### Summary
 - [Differential gene expression](#differential-gene-expression)
 - [Genewalk](#genewalk)
-- [Differential splicing (MAJIQ)](#differential-splicing)
+- [Differential splicing (MAJIQ)](#differential-splicing-majiq)
 	- [Column interpretations](#column-interpretations)
-- [Quantifying neuronal activity (NEUROeSTIMator)](#quantifying-neuronal-activity)
+- [Quantifying neuronal activity (NEUROeSTIMator)](#quantifying-neuronal-activity-neuroestimator)
 
 #### Differential gene expression
 <details>
