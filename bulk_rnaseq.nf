@@ -12,7 +12,7 @@ params.run_genewalk = true
 params.genewalk_pval = 0.05
 params.genewalk_fc = 0
 params.run_neuroestimator = true
-
+params.run_dge = true
 
 process DGEANALYSES {
     containerOptions "--bind $params.bind --no-home"
@@ -281,14 +281,16 @@ process NEUROESTIMATORPLOT {
 
 workflow {
   // DIFFERENTIAL GENE EXPRESSION ANALYSES
+	if (params.run_dge){
   DGEANALYSES(params.counts_matrix, params.normalized_counts, params.species, params.sample_table, params.chr_filter, params.genes_gsea_filter)
 	deg_files_ch = DGEANALYSES.out.deg_files.flatten()
+}
 
-	if (params.run_genewalk){
+	if (params.run_genewalk & params.run_dge){
     if (params.species == 'homosapiens'){
-      GENEWALK(deg_files_ch, 'hgnc_symbol')
+      GENEWALK(deg_files_ch, 'hgnc_symbol', params.genewalk_pval, params.genewalk_fc)
     } else if (params.species == 'musmuculus') {
-      GENEWALK(deg_files_ch, 'mgi_id')
+      GENEWALK(deg_files_ch, 'mgi_id', params.genewalk_pval, params.genewalk_fc)
     }
 	}
   

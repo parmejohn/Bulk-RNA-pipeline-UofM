@@ -1,4 +1,5 @@
 set.seed(333)
+options(timeout=100)
 
 ##### MAIN #####
 PerformDGETests <- function(cnts, 
