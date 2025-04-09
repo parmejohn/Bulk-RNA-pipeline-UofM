@@ -18,7 +18,7 @@ nextflow run nf-core/rnaseq \
     --fasta </path/to/file/>Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
     --pseudo_aligner kallisto
 ```
-- If using apptainer, you will have to add the nextflow argument `-profile apptainer` to the `nextflow run` command. Also, `export APPTAINER_BINDPATH=` has to be run beforehand with the appropiate paths. Please look to the [Arguments](#arguements) section for `bind` for usage and examples.
+- If using apptainer, you will have to add the nextflow argument `-profile apptainer` to the `nextflow run` command. Also, `export APPTAINER_BINDPATH=` has to be run beforehand with the appropiate paths. Please look to the [Arguments](#args) section for `bind` for usage and examples.
 
 ##### sample_sheet.csv for nfcore/rnaseq
 ```
@@ -49,7 +49,7 @@ nextflow run */Bulk-RNA-pipeline-UofM/bulk_rnaseq.nf \
 	...
 ```
 
-### Arguments
+### Arguments {#args}
 - <> = required
 - [] = optional
 - ... = nextflow options, use `nextflow run -h` for all possible options
@@ -68,6 +68,7 @@ nextflow run */Bulk-RNA-pipeline-UofM/bulk_rnaseq.nf \
 - **chr_filter**: Chromosomes to filter out during differential gene expression analyses. e.g. `--chr_filter X,1,2,3`
 - **genes_gsea_filter**: Genes to filter out during gene-set enrichment analysis (GSEA). Can be applied when there are knocked out genes. e.g. `--genes_gsea_filter FAN1,PRDM1`
 - **run_genewalk**: Perform [Genewalk](https://churchman.med.harvard.edu/genewalk) analysis. Determines relevant functions for individual genes given different conditions.
+- **genewalk_fc**: log2FC cutoff for list of DEGs from DESeq2 analyses for genewalk input.
 - **run_neuroestimator**: Perform [NEUROeSTIMator](https://research-git.uiowa.edu/michaelson-lab-public/neuroestimator) analysis. Quantifies neuronal activity from RNA-seq data.
 
 #### counts_matrix/normalized_matrix example
