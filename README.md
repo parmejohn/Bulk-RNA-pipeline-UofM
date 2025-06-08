@@ -4,6 +4,10 @@
 
 `git clone https://github.com/parmejohn/Bulk-RNA-pipeline-UofM.git`
 
+### Notes for Docker image building her 
+- Included Dockerfile for bulk RNA, other Dockerfiles used in nextflow.config can be found at the [scRNA pipeline](https://github.com/parmejohn/scRNA-pipeline-UofM)
+	- Building the Dockerfile for this requires a MAJIQ license file, please visit the [MAJIQ](https://majiq.biociphers.org/app_download/) website and register for an academic license to make edits
+
 ### Dependencies
 - NextFlow >= 23.10.1
 - Apptainer(singularity); tested with version 1.2.5-1.el7
